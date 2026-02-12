@@ -82,6 +82,19 @@ npm run build
 
 ---
 
+
+### ☁️ OPTION 5: Cloudflare (Pages or Workers Assets)
+
+If you deploy with **Cloudflare Pages**:
+- Build command: `npm run build`
+- Build output directory: `dist`
+- Do **not** set a custom deploy command like `wrangler versions upload` in Pages.
+
+If you deploy with **Wrangler** (Workers Assets):
+- Keep `wrangler.jsonc` with `assets.directory` set to `./dist`
+- Build first: `npm run build`
+- Deploy: `npx wrangler versions upload`
+
 ### ☁️ OPTION 4: GitHub Pages
 
 1. Install gh-pages:
