@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "doubleday-expressions-website",
+  "name": "doubleday-website",
   "compatibility_date": "2026-02-12",
   "assets": {
     "directory": "./dist"
