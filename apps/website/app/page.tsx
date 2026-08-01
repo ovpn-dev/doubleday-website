@@ -1,4 +1,7 @@
+'use client';
+
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Menu, X, ChevronRight, Award, Users, Briefcase, Phone, Mail, MapPin, CheckCircle, Target, Eye, Heart } from 'lucide-react';
 
 function App() {
@@ -23,7 +26,7 @@ function App() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToSection = (sectionId) => {
+  const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth' });
@@ -254,6 +257,13 @@ const clients = [
               Get Started
               <ChevronRight className="inline ml-2" size={20} />
             </button>
+            <Link
+              href="/assessment"
+              className="inline-flex items-center rounded-lg border border-white/60 px-8 py-4 text-lg font-semibold text-white transition hover:bg-white/10"
+            >
+              Start ISO Gap Assessment
+              <ChevronRight className="ml-2" size={20} />
+            </Link>
           </div>
         </div>
       </section>

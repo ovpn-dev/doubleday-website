@@ -1,4 +1,16 @@
-# Doubleday Expressions Limited - Official Website
+# Doubleday OS
+
+Doubleday OS is the product platform for Doubleday Expressions: a compliance and management-systems operating system for ISO consultants and their clients.
+
+The repository currently contains the public marketing website at its root. The target OS architecture, domain model, and phased delivery scope are documented in [`docs/`](docs/). The public site will migrate into `apps/website` as part of a deliberate Next.js migration; it remains at the root today to avoid disrupting the existing deployable application.
+
+- [Product scope](docs/PRODUCT_SCOPE.md)
+- [Core domain model](docs/DOMAIN_MODEL.md)
+- [Architecture direction](docs/ARCHITECTURE.md)
+
+---
+
+# Current application: Doubleday Expressions Limited website
 
 A modern, responsive, and SEO-optimized website for Doubleday Expressions Limited, a leading ISO management consulting firm in Nigeria.
 
