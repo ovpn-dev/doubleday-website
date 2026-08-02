@@ -10,7 +10,7 @@
   "scripts": {
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
-    "seed": "node prisma/seed.mjs",
+    "seed": "node --env-file=.env prisma/seed.mjs",
     "studio": "prisma studio"
   },
   "dependencies": {

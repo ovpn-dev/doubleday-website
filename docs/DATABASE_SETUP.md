@@ -13,3 +13,9 @@ npm.cmd run seed --workspace=@doubleday/database
 ```
 
 The seed command loads the initial ISO 9001, ISO 45001, and ISO 14001 clause catalog used by the gap assessment. The P1012 error is expected until step 3 is complete. The actual `.env` file is ignored by Git and must never be committed.
+
+For the first migration, provide a descriptive name so Prisma does not wait for an interactive prompt:
+
+```powershell
+npm.cmd run migrate --workspace=@doubleday/database -- --name init
+```
