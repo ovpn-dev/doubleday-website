@@ -8,194 +8,6 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id             String                   @id @default(cuid())
-  authProviderId String?                  @unique
-  email          String                   @unique
-  displayName    String?
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  memberships    OrganizationMembership[]
-}
-
-model Organization {
-  id             String                   @id @default(cuid())
-  name           String
-  slug           String                   @unique
-  type           OrganizationType         @default(CLIENT)
-  createdAt      DateTime                 @default(now())
-  updatedAt      DateTime                 @updatedAt
-  gapAssessments GapAssessment[]
-  leads          Lead[]
-  opportunities  Opportunity[]
-  memberships    OrganizationMembership[]
-  standards      OrganizationStandard[]
-  projects       Project[]
-  sites          Site[]
-}
-
-model OrganizationMembership {
-  id             String         @id @default(cuid())
-  organizationId String
-  userId         String
-  role           MembershipRole
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([organizationId, userId])
-  @@index([userId])
-}
-
-model Site {
-  id             String       @id @default(cuid())
-  organizationId String
-  name           String
-  address        String?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-
-  @@index([organizationId])
-}
-
-model Standard {
-  id                    String                 @id @default(cuid())
-  code                  String
-  title                 String
-  edition               String
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
-  organizationStandards OrganizationStandard[]
-  projectStandards      ProjectStandard[]
-  clauses               StandardClause[]
-
-  @@unique([code, edition])
-}
-
-model StandardClause {
-  id          String                @id @default(cuid())
-  standardId  String
-  code        String
-  title       String
-  requirement String?
-  createdAt   DateTime              @default(now())
-  updatedAt   DateTime              @updatedAt
-  answers     GapAssessmentAnswer[]
-  standard    Standard              @relation(fields: [standardId], references: [id], onDelete: Cascade)
-
-  @@unique([standardId, code])
-}
-
-model OrganizationStandard {
-  id             String       @id @default(cuid())
-  organizationId String
-  standardId     String
-  targetDate     DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  standard       Standard     @relation(fields: [standardId], references: [id])
-
-  @@unique([organizationId, standardId])
-}
-
-model Lead {
-  id             String          @id @default(cuid())
-  organizationId String?
-  contactName    String
-  email          String
-  phone          String?
-  companyName    String?
-  source         String?
-  status         LeadStatus      @default(NEW)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
-  assessments    GapAssessment[]
-  organization   Organization?   @relation(fields: [organizationId], references: [id])
-  opportunities  Opportunity[]
-
-  @@index([email])
-  @@index([status])
-}
-
-model Opportunity {
-  id             String           @id @default(cuid())
-  leadId         String
-  organizationId String?
-  title          String
-  stage          OpportunityStage @default(DISCOVERY)
-  estimatedValue Decimal?         @db.Decimal(12, 2)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  lead           Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  organization   Organization?    @relation(fields: [organizationId], references: [id])
-  projects       Project[]
-
-  @@index([stage])
-}
-
-model Project {
-  id             String            @id @default(cuid())
-  organizationId String
-  opportunityId  String?
-  name           String
-  status         ProjectStatus     @default(PLANNED)
-  startsOn       DateTime?
-  targetDate     DateTime?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  opportunity    Opportunity?      @relation(fields: [opportunityId], references: [id])
-  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  standards      ProjectStandard[]
-
-  @@index([organizationId, status])
-}
-
-model ProjectStandard {
-  id         String   @id @default(cuid())
-  projectId  String
-  standardId String
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  standard   Standard @relation(fields: [standardId], references: [id])
-
-  @@unique([projectId, standardId])
-}
-
-model GapAssessment {
-  id             String                @id @default(cuid())
-  organizationId String?
-  leadId         String?
-  standardCode   String
-  status         AssessmentStatus      @default(DRAFT)
-  overallScore   Int?
-  submittedAt    DateTime?
-  createdAt      DateTime              @default(now())
-  updatedAt      DateTime              @updatedAt
-  lead           Lead?                 @relation(fields: [leadId], references: [id])
-  organization   Organization?         @relation(fields: [organizationId], references: [id])
-  answers        GapAssessmentAnswer[]
-
-  @@index([organizationId])
-  @@index([leadId])
-}
-
-model GapAssessmentAnswer {
-  id           String          @id @default(cuid())
-  assessmentId String
-  clauseId     String?
-  questionKey  String
-  response     Json
-  score        Int?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
-  assessment   GapAssessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
-  clause       StandardClause? @relation(fields: [clauseId], references: [id])
-
-  @@unique([assessmentId, questionKey])
-}
-
 enum OrganizationType {
   CLIENT
   INTERNAL
@@ -240,4 +52,203 @@ enum AssessmentStatus {
   DRAFT
   SUBMITTED
   REVIEWED
+}
+
+model User {
+  id              String                   @id @default(cuid())
+  authProviderId  String?                  @unique
+  email           String                   @unique
+  displayName     String?
+  memberships     OrganizationMembership[]
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+}
+
+model Organization {
+  id                  String                   @id @default(cuid())
+  name                String
+  slug                String                   @unique
+  type                OrganizationType         @default(CLIENT)
+  memberships         OrganizationMembership[]
+  sites               Site[]
+  standards           OrganizationStandard[]
+  leads               Lead[]
+  opportunities       Opportunity[]
+  projects            Project[]
+  gapAssessments      GapAssessment[]
+  createdAt           DateTime                 @default(now())
+  updatedAt           DateTime                 @updatedAt
+}
+
+model OrganizationMembership {
+  id              String         @id @default(cuid())
+  organizationId  String
+  userId          String
+  role            MembershipRole
+  organization    Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+model Site {
+  id              String        @id @default(cuid())
+  organizationId  String
+  name            String
+  address         String?
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([organizationId])
+}
+
+model Standard {
+  id                      String                   @id @default(cuid())
+  code                    String
+  title                   String
+  edition                 String
+  clauses                 StandardClause[]
+  organizationStandards   OrganizationStandard[]
+  projectStandards        ProjectStandard[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  @@unique([code, edition])
+}
+
+model StandardClause {
+  id                 String                @id @default(cuid())
+  standardId         String
+  parentId           String?
+  code               String
+  title              String
+  requirement        String?
+  assessmentQuestion String?
+  requiredDocuments  String[]              @default([])
+  highRisk           Boolean               @default(false)
+  sortOrder          Int                   @default(0)
+  standard           Standard              @relation(fields: [standardId], references: [id], onDelete: Cascade)
+  parent             StandardClause?       @relation("ClauseHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children           StandardClause[]      @relation("ClauseHierarchy")
+  answers            GapAssessmentAnswer[]
+  createdAt          DateTime              @default(now())
+  updatedAt          DateTime              @updatedAt
+
+  @@unique([standardId, code])
+  @@index([parentId])
+}
+
+model OrganizationStandard {
+  id              String        @id @default(cuid())
+  organizationId  String
+  standardId      String
+  targetDate      DateTime?
+  organization    Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  standard        Standard      @relation(fields: [standardId], references: [id], onDelete: Restrict)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@unique([organizationId, standardId])
+}
+
+model Lead {
+  id              String        @id @default(cuid())
+  organizationId  String?
+  contactName     String
+  email           String
+  phone           String?
+  companyName     String?
+  source          String?
+  status          LeadStatus    @default(NEW)
+  organization    Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  opportunities   Opportunity[]
+  assessments     GapAssessment[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([email])
+  @@index([status])
+}
+
+model Opportunity {
+  id              String           @id @default(cuid())
+  leadId          String
+  organizationId  String?
+  title           String
+  stage           OpportunityStage @default(DISCOVERY)
+  estimatedValue  Decimal?         @db.Decimal(12, 2)
+  lead            Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  organization    Organization?    @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  projects        Project[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([stage])
+}
+
+model Project {
+  id              String          @id @default(cuid())
+  organizationId  String
+  opportunityId   String?
+  name            String
+  status          ProjectStatus   @default(PLANNED)
+  startsOn        DateTime?
+  targetDate      DateTime?
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  opportunity     Opportunity?    @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+  standards       ProjectStandard[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([organizationId, status])
+}
+
+model ProjectStandard {
+  id          String    @id @default(cuid())
+  projectId   String
+  standardId  String
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  standard    Standard  @relation(fields: [standardId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, standardId])
+}
+
+model GapAssessment {
+  id              String                   @id @default(cuid())
+  organizationId  String?
+  leadId          String?
+  standardCode    String
+  status          AssessmentStatus         @default(DRAFT)
+  overallScore    Int?
+  readinessLabel  String?
+  requiredDocumentGaps String[]            @default([])
+  highRiskGaps    String[]                @default([])
+  submittedAt     DateTime?
+  organization    Organization?            @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  lead            Lead?                    @relation(fields: [leadId], references: [id], onDelete: SetNull)
+  answers         GapAssessmentAnswer[]
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  @@index([organizationId])
+  @@index([leadId])
+}
+
+model GapAssessmentAnswer {
+  id              String          @id @default(cuid())
+  assessmentId    String
+  clauseId        String?
+  questionKey     String
+  response        Json
+  score           Int?
+  assessment      GapAssessment   @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  clause          StandardClause? @relation(fields: [clauseId], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@unique([assessmentId, questionKey])
 }

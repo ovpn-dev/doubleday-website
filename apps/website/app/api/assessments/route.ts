@@ -4,7 +4,8 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 
 type AssessmentAnswer = {
-  clause: string;
+  clauseId: string;
+  code: string;
   title: string;
   question: string;
   answer: 'yes' | 'partial' | 'no';
@@ -16,8 +17,13 @@ type AssessmentSubmission = {
   email: string;
   standard: string;
   score: number;
+  readinessLabel: string;
+  requiredDocumentGaps: string[];
+  highRiskGaps: string[];
   answers: AssessmentAnswer[];
 };
+
+const scoreByAnswer: Record<AssessmentAnswer['answer'], number> = { yes: 100, partial: 50, no: 0 };
 
 function isSubmission(value: unknown): value is AssessmentSubmission {
   if (!value || typeof value !== 'object') return false;
@@ -27,8 +33,12 @@ function isSubmission(value: unknown): value is AssessmentSubmission {
     && typeof submission.email === 'string'
     && typeof submission.standard === 'string'
     && typeof submission.score === 'number'
+    && typeof submission.readinessLabel === 'string'
+    && Array.isArray(submission.requiredDocumentGaps)
+    && Array.isArray(submission.highRiskGaps)
     && Array.isArray(submission.answers)
-    && submission.answers.length > 0;
+    && submission.answers.length > 0
+    && submission.answers.every((answer) => typeof answer?.clauseId === 'string' && !!answer.answer);
 }
 
 export async function POST(request: Request) {
@@ -42,12 +52,6 @@ export async function POST(request: Request) {
   }
 
   const assessment = await prisma.$transaction(async (tx) => {
-    const standard = await tx.standard.findFirst({
-      where: { code: payload.standard },
-      include: { clauses: { select: { id: true, code: true } } },
-    });
-    const clauseIdByCode = new Map(standard?.clauses.map((clause) => [clause.code, clause.id]) ?? []);
-
     const lead = await tx.lead.create({
       data: {
         companyName: payload.companyName.trim(),
@@ -70,18 +74,21 @@ export async function POST(request: Request) {
         standardCode: payload.standard,
         status: 'SUBMITTED',
         overallScore: payload.score,
+        readinessLabel: payload.readinessLabel,
+        requiredDocumentGaps: payload.requiredDocumentGaps,
+        highRiskGaps: payload.highRiskGaps,
         submittedAt: new Date(),
         answers: {
           create: payload.answers.map((answer) => ({
-            clauseId: clauseIdByCode.get(answer.clause.replace('Clause ', '')),
-            questionKey: answer.clause,
+            clauseId: answer.clauseId,
+            questionKey: answer.code,
             response: {
               answer: answer.answer,
-              clause: answer.clause,
-              question: answer.question,
+              code: answer.code,
               title: answer.title,
+              question: answer.question,
             },
-            score: answer.answer === 'yes' ? 100 : answer.answer === 'partial' ? 50 : 0,
+            score: scoreByAnswer[answer.answer],
           })),
         },
       },
