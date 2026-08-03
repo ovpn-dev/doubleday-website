@@ -11,6 +11,9 @@ export type CrmLeadSummary = {
     id: string;
     standardCode: string;
     overallScore: number | null;
+    readinessLabel: string | null;
+    highRiskGaps: string[];
+    requiredDocumentGaps: string[];
     submittedAt: Date | null;
   } | null;
   opportunity: {
@@ -38,6 +41,9 @@ export async function listAssessmentLeads(): Promise<CrmLeadSummary[]> {
           id: true,
           standardCode: true,
           overallScore: true,
+          readinessLabel: true,
+          highRiskGaps: true,
+          requiredDocumentGaps: true,
           submittedAt: true,
         },
       },

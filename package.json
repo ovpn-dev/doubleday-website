@@ -12,6 +12,9 @@
     "dev": "npm run dev --workspace=@doubleday/website",
     "build": "npm run build --workspace=@doubleday/website",
     "start": "npm run start --workspace=@doubleday/website",
-    "lint": "npm run lint --workspace=@doubleday/website"
+    "lint": "npm run lint --workspace=@doubleday/website",
+    "dev:admin": "npm run dev --workspace=@doubleday/admin",
+    "build:admin": "npm run build --workspace=@doubleday/admin",
+    "start:admin": "npm run start --workspace=@doubleday/admin"
   }
 }
