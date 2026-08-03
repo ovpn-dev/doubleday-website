@@ -1,4 +1,5 @@
 import { prisma } from './client';
+import type { OpportunityStage } from '@prisma/client';
 
 export type CrmLeadSummary = {
   id: string;
@@ -86,5 +87,12 @@ export async function getLeadWithAssessment(leadId: string) {
         },
       },
     },
+  });
+}
+
+export async function updateOpportunityStage(opportunityId: string, stage: OpportunityStage) {
+  return prisma.opportunity.update({
+    where: { id: opportunityId },
+    data: { stage },
   });
 }

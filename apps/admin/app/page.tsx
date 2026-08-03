@@ -1,5 +1,6 @@
 import { listAssessmentLeads } from '@doubleday/database/crm';
 import { AlertTriangle, Mail, TriangleAlert } from 'lucide-react';
+import Link from 'next/link';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,7 +76,11 @@ export default async function LeadsPage() {
               <tbody className="divide-y divide-slate-100">
                 {sorted.map((lead) => (
                   <tr key={lead.id} className="align-top hover:bg-slate-50">
-                    <td className="px-5 py-4 font-semibold text-slate-950">{lead.companyName ?? '—'}</td>
+                    <td className="px-5 py-4 font-semibold text-slate-950">
+                      <Link href={`/leads/${lead.id}`} className="hover:text-blue-800 hover:underline">
+                        {lead.companyName ?? '—'}
+                      </Link>
+                    </td>
                     <td className="px-5 py-4">
                       <p className="text-slate-800">{lead.contactName}</p>
                       <p className="text-xs text-slate-500">{lead.email}</p>
