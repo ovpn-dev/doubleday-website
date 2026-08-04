@@ -2,6 +2,7 @@ import { getLeadWithAssessment } from '@doubleday/database/crm';
 import { ArrowLeft, Mail, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ProposalPanel } from './proposal-panel';
 import { StageSelector } from './stage-selector';
 
 type AnswerResponse = {
@@ -139,6 +140,15 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 })}
               </div>
             </div>
+
+            {opportunity && (
+              <ProposalPanel
+                opportunityId={opportunity.id}
+                leadId={lead.id}
+                initialEstimatedValue={opportunity.estimatedValue ? Number(opportunity.estimatedValue) : null}
+                currentStage={opportunity.stage}
+              />
+            )}
           </>
         )}
 

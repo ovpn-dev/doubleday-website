@@ -96,3 +96,10 @@ export async function updateOpportunityStage(opportunityId: string, stage: Oppor
     data: { stage },
   });
 }
+
+export async function updateOpportunityEstimate(opportunityId: string, estimatedValue: number | null) {
+  return prisma.opportunity.update({
+    where: { id: opportunityId },
+    data: { estimatedValue },
+  });
+}
