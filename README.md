@@ -2,169 +2,45 @@
 
 Doubleday OS is the product platform for Doubleday Expressions: a compliance and management-systems operating system for ISO consultants and their clients.
 
-The repository currently contains the public marketing website at its root. The target OS architecture, domain model, and phased delivery scope are documented in [`docs/`](docs/). The public site will migrate into `apps/website` as part of a deliberate Next.js migration; it remains at the root today to avoid disrupting the existing deployable application.
+The target OS architecture, domain model, and phased delivery scope are documented in [`docs/`](docs/).
 
 - [Product scope](docs/PRODUCT_SCOPE.md)
 - [Core domain model](docs/DOMAIN_MODEL.md)
 - [Architecture direction](docs/ARCHITECTURE.md)
 
----
+## What's live today
 
-# Current application: Doubleday Expressions Limited website
+| App | Path | Status |
+|---|---|---|
+| Marketing website + ISO gap assessment | [`apps/website`](apps/website) | Live — public-facing, Next.js |
+| Internal admin (leads, CRM pipeline, proposals) | [`apps/admin`](apps/admin) | Live — internal-only, Next.js, runs on port 3001 |
 
-A modern, responsive, and SEO-optimized website for Doubleday Expressions Limited, a leading ISO management consulting firm in Nigeria.
+Everything else under `apps/`, `packages/`, and `services/` is still a stub (see each directory's own README for its planned scope). The original Vite marketing site that used to live at the repository root has been fully replaced by `apps/website` and no longer exists in this repo.
 
-## 🚀 Features
+## Current end-to-end workflow
 
-- **Modern Design**: Clean, professional interface built with React and Tailwind CSS
-- **SEO Optimized**: Comprehensive meta tags, structured data, and semantic HTML
-- **Responsive**: Mobile-first design that works on all devices
-- **Fast Performance**: Built with Vite for lightning-fast load times
-- **Smooth Animations**: Engaging user experience with subtle transitions
-- **Accessible**: WCAG compliant with proper semantic markup
+1. A prospect completes the ISO gap assessment on the public website (`apps/website/app/assessment`), answering clause-level questions specific to their chosen standard (ISO 9001, 45001, or 14001).
+2. Submission creates a `Lead` and `Opportunity` and computes a weighted readiness score, priority (high-risk) gap list, and required-documents list — all persisted via `packages/database`.
+3. A consultant reviews submissions in the admin app (`apps/admin`), sorted by readiness score, and opens a lead to see the full clause-by-clause breakdown.
+4. The consultant can move the opportunity through its pipeline stage (Discovery → Assessment → Proposal → Negotiation → Won/Lost), set an estimated engagement value, and download a Word proposal generated on the fly from the assessment's gaps — nothing is stored, it's rebuilt from live data on every download.
+5. Marking an opportunity **Won** automatically creates a client `Organization` and an `ACTIVE` `Project` record, and advances the lead to `CONVERTED` — seeding the data model for the client-facing work (document control, audits, etc.) that hasn't been built yet, without requiring a manual backfill later.
 
-## 🛠️ Tech Stack
+## Getting started
 
-- **React 18** - Modern UI library
-- **Vite** - Next generation frontend tooling
-- **Tailwind CSS** - Utility-first CSS framework
-- **Lucide React** - Beautiful icon library
-- **PostCSS** - CSS transformation tool
+See [`DEPLOYMENT_GUIDE.md`](DEPLOYMENT_GUIDE.md) for local setup, database configuration, and deployment notes.
 
-## 📋 Prerequisites
-
-Before you begin, ensure you have the following installed:
-- Node.js (v16 or higher)
-- npm or yarn package manager
-
-## 🔧 Installation
-
-1. Clone or extract the project files
-
-2. Navigate to the project directory:
-```bash
-cd doubleday-website
-```
-
-3. Install dependencies:
 ```bash
 npm install
-```
 
-## 🏃 Running the Development Server
-
-Start the development server:
-```bash
+# public website — http://localhost:3000
 npm run dev
+
+# internal admin — http://localhost:3001
+npm run dev:admin
 ```
 
-The website will be available at `http://localhost:3000`
+## Support
 
-## 🏗️ Building for Production
-
-Create an optimized production build:
-```bash
-npm run build
-```
-
-The built files will be in the `dist` directory.
-
-Preview the production build locally:
-```bash
-npm run preview
-```
-
-## 🌐 Deployment Options
-
-### Option 1: Vercel (Recommended)
-
-1. Create a free account at [vercel.com](https://vercel.com)
-2. Install Vercel CLI: `npm install -g vercel`
-3. Run: `vercel`
-4. Follow the prompts
-
-### Option 2: Netlify
-
-1. Create account at [netlify.com](https://netlify.com)
-2. Drag and drop the `dist` folder to Netlify
-3. Or use Netlify CLI:
-```bash
-npm install -g netlify-cli
-netlify deploy --prod
-```
-
-### Option 3: Traditional Hosting
-
-1. Build the project: `npm run build`
-2. Upload the contents of the `dist` folder to your web server
-3. Configure your server to serve `index.html` for all routes
-
-## 📱 Sections
-
-The website includes the following sections:
-- **Home** - Hero section with company overview
-- **About** - Company history, vision, mission, and philosophy
-- **Services** - Detailed service offerings
-- **Projects** - Notable projects and accomplishments
-- **Clients** - Trusted client portfolio
-- **Team** - Key consultants and their expertise
-- **Contact** - Contact information and location
-
-## 🎨 Customization
-
-### Changing Colors
-
-Edit `tailwind.config.js` to modify the color scheme:
-```javascript
-colors: {
-  'brand-blue': {
-    // Customize these values
-    900: '#1e3a8a',
-    // ... other shades
-  },
-}
-```
-
-### Adding/Editing Content
-
-All content is in `src/App.jsx`. Look for the following sections:
-- `services` array - Service offerings
-- `stats` array - Company statistics
-- `team` array - Team members
-- Contact information in the contact section
-
-## 🔍 SEO Features
-
-- Semantic HTML5 structure
-- Meta tags for social media (Open Graph, Twitter Cards)
-- Schema.org structured data for business information
-- Sitemap ready
-- Mobile-friendly and responsive
-- Fast loading times with code splitting
-- Accessible navigation
-
-## 📊 Performance Optimization
-
-- Code splitting for faster initial load
-- Lazy loading of components
-- Optimized images and assets
-- Minimal JavaScript bundle size
-- CSS purging in production
-
-## 📄 License
-
-© 2024 Doubleday Expressions Limited. All rights reserved.
-
-## 📞 Support
-
-For technical support or questions, contact:
+For questions about the Doubleday Expressions business itself:
 - Email: doubledayexpressions@gmail.com
 - Phone: +234 803 335 3229
-
-## 🤝 Contributing
-
-This is a private company website. For updates or modifications, please contact the development team.
-
----
-
-Built with ❤️ for Doubleday Expressions Limited

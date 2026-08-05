@@ -107,7 +107,19 @@ export default async function LeadsPage() {
                         <span className="text-slate-400">0</span>
                       )}
                     </td>
-                    <td className="px-5 py-4 text-slate-700">{lead.opportunity?.stage ?? lead.status}</td>
+                    <td className="px-5 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          lead.opportunity?.stage === 'WON'
+                            ? 'bg-green-100 text-green-800'
+                            : lead.opportunity?.stage === 'LOST'
+                              ? 'bg-slate-200 text-slate-600'
+                              : 'bg-blue-50 text-blue-800'
+                        }`}
+                      >
+                        {lead.opportunity?.stage ?? lead.status}
+                      </span>
+                    </td>
                     <td className="px-5 py-4 text-slate-500">
                       {lead.latestAssessment?.submittedAt
                         ? new Date(lead.latestAssessment.submittedAt).toLocaleDateString(undefined, {

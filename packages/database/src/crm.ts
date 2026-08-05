@@ -1,5 +1,5 @@
 import { prisma } from './client';
-import type { OpportunityStage } from '@prisma/client';
+import { Prisma, type OpportunityStage } from '@prisma/client';
 
 export type CrmLeadSummary = {
   id: string;
@@ -76,6 +76,11 @@ export async function getLeadWithAssessment(leadId: string) {
   return prisma.lead.findUnique({
     where: { id: leadId },
     include: {
+      organization: {
+        include: {
+          projects: { orderBy: { createdAt: 'desc' }, take: 1 },
+        },
+      },
       opportunities: { orderBy: { createdAt: 'desc' } },
       assessments: {
         orderBy: { submittedAt: 'desc' },
@@ -90,11 +95,105 @@ export async function getLeadWithAssessment(leadId: string) {
   });
 }
 
+export type WonHydrationResult = {
+  organization: { id: string; name: string; slug: string };
+  project: { id: string; name: string; status: string };
+} | null;
+
+function slugify(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '') || 'client';
+}
+
+/**
+ * Ensures a unique Organization.slug by appending a short random suffix on
+ * collision. Organization names (company names from leads) are not
+ * guaranteed unique, so the base slug alone can't be trusted.
+ */
+async function uniqueOrganizationSlug(tx: Prisma.TransactionClient, base: string): Promise<string> {
+  const existing = await tx.organization.findUnique({ where: { slug: base }, select: { id: true } });
+  if (!existing) return base;
+  const suffix = Math.random().toString(36).slice(2, 7);
+  return `${base}-${suffix}`;
+}
+
+/**
+ * When a deal is marked WON: create the client Organization (from the
+ * lead's company/contact info) and a linked Project in ACTIVE status,
+ * backfill organizationId onto the Lead and Opportunity, and advance the
+ * Lead to CONVERTED. Idempotent — if the lead already has an organization
+ * (e.g. the deal was re-marked WON after being moved back), this is a
+ * no-op and returns null rather than creating duplicates.
+ */
+export async function hydrateWonOpportunity(opportunityId: string): Promise<WonHydrationResult> {
+  return prisma.$transaction(async (tx) => {
+    const opportunity = await tx.opportunity.findUnique({
+      where: { id: opportunityId },
+      include: { lead: true },
+    });
+
+    if (!opportunity) {
+      throw new Error('Opportunity not found.');
+    }
+
+    if (opportunity.organizationId || opportunity.lead.organizationId) {
+      // Already hydrated — don't create duplicate records.
+      return null;
+    }
+
+    const organizationName = opportunity.lead.companyName ?? opportunity.lead.contactName;
+    const baseSlug = slugify(organizationName);
+    const slug = await uniqueOrganizationSlug(tx, baseSlug);
+
+    const organization = await tx.organization.create({
+      data: {
+        name: organizationName,
+        slug,
+        type: 'CLIENT',
+      },
+    });
+
+    await tx.lead.update({
+      where: { id: opportunity.leadId },
+      data: { organizationId: organization.id, status: 'CONVERTED' },
+    });
+
+    await tx.opportunity.update({
+      where: { id: opportunityId },
+      data: { organizationId: organization.id },
+    });
+
+    const project = await tx.project.create({
+      data: {
+        organizationId: organization.id,
+        opportunityId: opportunity.id,
+        name: opportunity.title,
+        status: 'ACTIVE',
+        startsOn: new Date(),
+      },
+    });
+
+    return {
+      organization: { id: organization.id, name: organization.name, slug: organization.slug },
+      project: { id: project.id, name: project.name, status: project.status },
+    };
+  });
+}
+
 export async function updateOpportunityStage(opportunityId: string, stage: OpportunityStage) {
-  return prisma.opportunity.update({
+  const opportunity = await prisma.opportunity.update({
     where: { id: opportunityId },
     data: { stage },
   });
+
+  if (stage === 'WON') {
+    await hydrateWonOpportunity(opportunityId);
+  }
+
+  return opportunity;
 }
 
 export async function updateOpportunityEstimate(opportunityId: string, estimatedValue: number | null) {
