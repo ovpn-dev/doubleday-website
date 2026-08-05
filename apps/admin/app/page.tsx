@@ -34,12 +34,19 @@ export default async function LeadsPage() {
   return (
     <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-6xl">
-        <div className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-800">Doubleday OS — Admin</p>
-          <h1 className="mt-1 text-3xl font-bold text-slate-950">Gap assessment leads</h1>
-          <p className="mt-2 text-slate-600">
-            Prospects who submitted a website gap assessment, sorted by readiness score (lowest first).
-          </p>
+        <div className="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-blue-800">Doubleday OS — Admin</p>
+            <h1 className="mt-1 text-3xl font-bold text-slate-950">Gap assessment leads</h1>
+            <p className="mt-2 text-slate-600">
+              Prospects who submitted a website gap assessment, sorted by readiness score (lowest first).
+            </p>
+          </div>
+          <form action="/api/logout" method="POST">
+            <button type="submit" className="text-sm font-semibold text-slate-500 hover:text-slate-800">
+              Sign out
+            </button>
+          </form>
         </div>
 
         {loadError && (
