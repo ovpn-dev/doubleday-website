@@ -79,6 +79,10 @@ export async function getLeadWithAssessment(leadId: string) {
       organization: {
         include: {
           projects: { orderBy: { createdAt: 'desc' }, take: 1 },
+          memberships: {
+            orderBy: { createdAt: 'asc' },
+            include: { user: { select: { email: true } } },
+          },
         },
       },
       opportunities: { orderBy: { createdAt: 'desc' } },
@@ -93,6 +97,32 @@ export async function getLeadWithAssessment(leadId: string) {
       },
     },
   });
+}
+
+/**
+ * Creates (or reuses, if the email already exists) a User, sets their
+ * password, and grants them CLIENT_ADMIN membership on the given
+ * organization. Used by the admin app to issue a client's first portal
+ * login. Idempotent on email — calling this again for the same email
+ * updates the password rather than erroring, so an admin can reset a
+ * client's password by "creating" the login again.
+ */
+export async function createClientLogin(organizationId: string, email: string, passwordHash: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  const user = await prisma.user.upsert({
+    where: { email: normalizedEmail },
+    update: { passwordHash },
+    create: { email: normalizedEmail, passwordHash },
+  });
+
+  await prisma.organizationMembership.upsert({
+    where: { organizationId_userId: { organizationId, userId: user.id } },
+    update: {},
+    create: { organizationId, userId: user.id, role: 'CLIENT_ADMIN' },
+  });
+
+  return { userId: user.id, email: user.email };
 }
 
 export type WonHydrationResult = {

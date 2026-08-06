@@ -1,6 +1,7 @@
 'use server';
 
-import { updateOpportunityEstimate, updateOpportunityStage } from '@doubleday/database/crm';
+import { createClientLogin, updateOpportunityEstimate, updateOpportunityStage } from '@doubleday/database/crm';
+import { hashPassword } from '@doubleday/auth/password';
 import type { OpportunityStage } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 
@@ -23,4 +24,26 @@ export async function markProposalSent(opportunityId: string, leadId: string) {
   await updateOpportunityStage(opportunityId, 'NEGOTIATION');
   revalidatePath(`/leads/${leadId}`);
   revalidatePath('/');
+}
+
+export type CreateLoginResult = { ok: true; email: string } | { ok: false; error: string };
+
+export async function createClientPortalLogin(
+  organizationId: string,
+  leadId: string,
+  email: string,
+  password: string,
+): Promise<CreateLoginResult> {
+  const trimmedEmail = email.trim();
+  if (!trimmedEmail || !trimmedEmail.includes('@')) {
+    return { ok: false, error: 'Enter a valid email address.' };
+  }
+  if (password.length < 8) {
+    return { ok: false, error: 'Password must be at least 8 characters.' };
+  }
+
+  const passwordHash = await hashPassword(password);
+  const result = await createClientLogin(organizationId, trimmedEmail, passwordHash);
+  revalidatePath(`/leads/${leadId}`);
+  return { ok: true, email: result.email };
 }

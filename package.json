@@ -15,6 +15,9 @@
     "lint": "npm run lint --workspace=@doubleday/website",
     "dev:admin": "npm run dev --workspace=@doubleday/admin",
     "build:admin": "npm run build --workspace=@doubleday/admin",
-    "start:admin": "npm run start --workspace=@doubleday/admin"
+    "start:admin": "npm run start --workspace=@doubleday/admin",
+    "dev:client": "npm run dev --workspace=@doubleday/client-portal",
+    "build:client": "npm run build --workspace=@doubleday/client-portal",
+    "start:client": "npm run start --workspace=@doubleday/client-portal"
   }
 }

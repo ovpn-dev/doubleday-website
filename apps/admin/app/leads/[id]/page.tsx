@@ -2,6 +2,7 @@ import { getLeadWithAssessment } from '@doubleday/database/crm';
 import { ArrowLeft, Building2, Mail, TriangleAlert } from 'lucide-react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ClientLoginForm } from './client-login-form';
 import { ProposalPanel } from './proposal-panel';
 import { StageSelector } from './stage-selector';
 
@@ -64,15 +65,22 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         {lead.organization && (
-          <div className="mt-6 flex items-start gap-3 rounded-2xl border border-green-200 bg-green-50 p-5">
-            <Building2 className="mt-0.5 flex-none text-green-700" size={20} />
-            <div>
-              <p className="font-semibold text-green-900">Client record created</p>
-              <p className="mt-1 text-sm text-green-800">
-                {lead.organization.name} is now a client organization
-                {lead.organization.projects[0] && <> with project &ldquo;{lead.organization.projects[0].name}&rdquo; ({lead.organization.projects[0].status.toLowerCase()})</>}.
-              </p>
+          <div className="mt-6 rounded-2xl border border-green-200 bg-green-50 p-5">
+            <div className="flex items-start gap-3">
+              <Building2 className="mt-0.5 flex-none text-green-700" size={20} />
+              <div>
+                <p className="font-semibold text-green-900">Client record created</p>
+                <p className="mt-1 text-sm text-green-800">
+                  {lead.organization.name} is now a client organization
+                  {lead.organization.projects[0] && <> with project &ldquo;{lead.organization.projects[0].name}&rdquo; ({lead.organization.projects[0].status.toLowerCase()})</>}.
+                </p>
+              </div>
             </div>
+            <ClientLoginForm
+              organizationId={lead.organization.id}
+              leadId={lead.id}
+              existingEmails={lead.organization.memberships.map((m) => m.user.email)}
+            />
           </div>
         )}
 
