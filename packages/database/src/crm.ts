@@ -166,6 +166,16 @@ export async function hydrateWonOpportunity(opportunityId: string): Promise<WonH
       data: { organizationId: organization.id },
     });
 
+    // Backfill onto the lead's assessment(s) too. Assessments are created
+    // at submission time (before any Organization exists) and only ever
+    // linked via leadId — without this, a query path that looks up
+    // assessments by organizationId (e.g. the client dashboard) would find
+    // nothing for a won client, even though the assessment data exists.
+    await tx.gapAssessment.updateMany({
+      where: { leadId: opportunity.leadId },
+      data: { organizationId: organization.id },
+    });
+
     const project = await tx.project.create({
       data: {
         organizationId: organization.id,

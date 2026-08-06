@@ -57,6 +57,7 @@ enum AssessmentStatus {
 model User {
   id              String                   @id @default(cuid())
   authProviderId  String?                  @unique
+  passwordHash    String?
   email           String                   @unique
   displayName     String?
   memberships     OrganizationMembership[]
