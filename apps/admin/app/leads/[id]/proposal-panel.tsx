@@ -62,6 +62,8 @@ export function ProposalPanel({
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <a
           href={`/api/leads/${leadId}/proposal`}
+          target="_blank"
+          rel="noopener noreferrer"
           className="inline-flex items-center rounded-lg bg-blue-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-800"
         >
           <FileDown className="mr-2" size={16} /> Download proposal (.docx)

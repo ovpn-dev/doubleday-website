@@ -1,9 +1,11 @@
 # Doubleday OS — Handoff / Status Notes
 
-Last updated: August 5, 2026 (Phase 3 in progress — User.passwordHash and
-GapAssessment backfill applied to the real DB; client login system built
-end-to-end (password hashing, session, middleware, login page, admin-side
-login creation) but not yet tested by the user; dashboard still not built)
+Last updated: August 6, 2026 (Phase 3 MVP built; client login confirmed
+working end-to-end including a fresh lead through the full pipeline;
+backfill script run successfully against the real DB; one real bug found
+and fixed — a proposal-download/estimate-save race condition — pending
+user confirmation; dashboard itself not yet visually confirmed for the
+backfilled lead)
 
 This file exists so work can resume cleanly in a new session or with a different
 tool, without relying on chat history. If you're picking this up fresh: read
@@ -227,27 +229,136 @@ why). Pieces:
   `packages/database/README.md`, root `README.md`, `DEPLOYMENT_GUIDE.md`
   (all edited to reflect the above).
 
-**Not yet tested by the user** — this is the first round where the
-Next.js-level wiring (not just the standalone crypto/password logic)
-hasn't been run for real yet. Needs: `npm install` (new deps:
-`@doubleday/auth` added to admin; client-portal is an entirely new
-workspace), set `CLIENT_SESSION_SECRET` in
-`apps/client-portal/.env.local`, then a real end-to-end pass: create a
-login from a won lead in admin, sign in at the client portal with those
-exact credentials, confirm the placeholder page loads, confirm signing out
-and back in works, confirm a wrong password is rejected.
+**Tested end-to-end by the user** — login worked, placeholder page rendered,
+no terminal errors. The auth system itself (Steps 1-3) is now fully
+confirmed working, not just built.
+
+### Step 4 — DONE (built, not yet tested by the user): the read-only dashboard + pre-existing-WON-deals backfill
+
+- **Read model** — `packages/database/src/client-portal.ts`, new file.
+  Deliberately separate from `crm.ts` (which is admin-only) — this one is
+  client-facing. `getClientProjectView(organizationId)` returns everything
+  the dashboard shows: the org's latest `Project` (name, status, dates)
+  and latest submitted `GapAssessment` (score, readiness label, gaps
+  filtered to non-`yes` answers with each clause's `highRisk` flag,
+  required documents). Same "caller must supply an already-verified
+  organizationId, this function doesn't check authorization itself"
+  pattern as `crm.ts`. New export added to
+  `packages/database/package.json` (`./client-portal`).
+  **Verification note:** the file can't be typechecked end-to-end in this
+  sandbox because `@prisma/client` was never generated here (same
+  limitation noted throughout — blocked binary download), which cascades
+  into a couple of "implicitly any" errors on values whose types come from
+  Prisma's generated output. To isolate whether anything *else* was wrong
+  independent of that, the actual gap-filtering logic (the map/filter/
+  optional-chaining pattern) was extracted into a standalone file with
+  manually-stubbed types and typechecked in strict mode — zero errors.
+  So: the logic itself is verified sound; only the Prisma-type-inference
+  layer is unverified, and that's the same ceiling every round has hit.
+- **Dashboard page** — `apps/client-portal/app/page.tsx`, replaces the
+  placeholder from Step 3. Server component: reads the session cookie via
+  `next/headers`'s `cookies()` (confirmed via search this needs `await
+  cookies()` in Next.js 15 — the API changed from earlier versions, this
+  project is pinned to `^15.5.0`), derives `organizationId` from the
+  verified session, calls `getClientProjectView`. Fails closed (shows
+  a generic "session expired" message, never falls through to rendering
+  anything) if the session is somehow missing despite middleware already
+  having checked it — belt-and-suspenders, not load-bearing on its own.
+  Shows: project header (name/status/dates), readiness score, priority
+  gaps and other gaps in separate sections (reusing the same `highRisk`
+  concept the proposal generator and admin lead-detail page already use —
+  not a new concept), required documents list, sign-out.
+- **Pre-existing-WON-deals backfill** —
+  `packages/database/scripts/backfill-won-assessments.mjs`, new file, run
+  via `npm run backfill` (new script added to
+  `packages/database/package.json`). For every `Organization` that has at
+  least one `Lead`, backfills `organizationId` onto any of that lead's
+  `GapAssessment` rows still missing it. Safe to run more than once — only
+  touches rows still null. **Deliberately plain JS against
+  `@prisma/client` directly**, matching `prisma/seed.mjs`'s proven
+  pattern, rather than importing from `src/crm.ts` — an earlier attempt to
+  write this as a `.mjs` script importing TypeScript source via `tsx` hit
+  the same unexplained module-export-resolution quirk `tsx` showed
+  earlier in this project (a file that plainly exports a named function
+  reports only `{ default }` when introspected via `tsx`, no clear root
+  cause found). Rather than depend on working around that, the underlying
+  update logic (target the right assessments by org's lead IDs, only
+  touch nulls, count how many were fixed) was verified separately against
+  a hand-written mock of the Prisma client shape — confirmed it fixes
+  exactly the rows it should and leaves already-backfilled ones alone —
+  then reimplemented as plain JS with no `tsx` dependency at all.
+- **Docs updated**: `apps/client-portal/README.md` (dashboard section,
+  backfill instructions), `packages/database/README.md`
+  (`client-portal.ts` + backfill script documented), root `README.md`
+  (live-apps table + workflow step 6), `DEPLOYMENT_GUIDE.md` (local
+  verification, Vercel section, before-production checklist all updated
+  to reflect the dashboard being real and the backfill being a real
+  pre-deploy step, not a someday-maybe).
+
+**Not yet tested by the user.** Needs, in order:
+1. `npm run backfill --workspace=@doubleday/database` (or `cd
+   packages/database && npm run backfill`) — should report fixing at
+   least 1 assessment (the "okok schools" lead, won before the
+   `hydrateWonOpportunity` fix).
+2. Sign in to the client portal as "okok schools" — dashboard should now
+   show real assessment data, not an empty state.
+3. Run a fresh lead through the entire pipeline end-to-end (assessment →
+   won → login creation → sign in) to confirm the *current*, already-fixed
+   code path works without needing the backfill at all.
+
+### Bug found and fixed (user-reported): proposal download racing the estimate save
+
+**Reported symptom:** `NetworkError when attempting to fetch resource` in
+the browser, attributed to `LeadDetailPage` at the `<ProposalPanel />` JSX
+line — but the proposal still downloaded successfully despite the error,
+and it only started after setting a price then clicking download shortly
+after.
+
+**Root cause:** `apps/admin/app/leads/[id]/proposal-panel.tsx`'s price
+field fires `setOpportunityEstimate` (a server action) on `onBlur` — i.e.
+exactly when you click away from the field to click "Download proposal."
+The download link had no `target`, so clicking it navigated the *current
+tab* to the binary file response. If the estimate-save server action
+request was still in flight when that same-tab navigation started, the
+browser could abandon/interrupt it, which Next's client runtime surfaces
+as a generic network error attributed to the nearest component boundary
+in the stack — not a useful pointer to the actual cause. This is why it
+looked like a `ProposalPanel` bug but wasn't one.
+
+**Fix:** added `target="_blank" rel="noopener noreferrer"` to the download
+link in `apps/admin/app/leads/[id]/proposal-panel.tsx` — the download now
+opens in its own browsing context and can never collide with or interrupt
+a pending request on the main page.
+
+**Verification:** hand-diagnosed by walking through the exact reported
+sequence (price change → blur fires save → click download → same-tab nav
+races the in-flight save) and confirming via `grep` that the link had no
+`target` attribute before the fix. Not reproduced in a live browser (no
+browser available in this sandbox) — **the user should confirm the fix by
+repeating the exact sequence** (change price, click download shortly
+after) a few times and checking the error doesn't recur.
+
+Files touched:
+- `apps/admin/app/leads/[id]/proposal-panel.tsx` (edited — added
+  `target="_blank" rel="noopener noreferrer"` to the download link)
 
 ## Remaining next steps (in order)
 
-1. User tests Step 3 end-to-end (see above) and reports back.
-2. Build the read-only dashboard — project header, readiness score, gap
-   list, required documents (reuse the proposal generator's gap logic,
-   don't rebuild it). This is the last piece of the originally-agreed
-   Phase 3 MVP scope.
-3. Handle the pre-existing-WON-deals gap noted under Step 2 above — any
-   lead marked WON before that fix still has `GapAssessment.organizationId:
-   null` and needs a manual backfill before the dashboard will show its
-   data correctly.
+1. User confirms the proposal-download-race fix above by repeating the
+   change-price-then-download sequence a few times.
+2. User runs the backfill script and tests the dashboard for both the
+   pre-existing lead ("okok schools") and a fresh end-to-end lead (see
+   the 3-step test sequence directly above) — **partially done**: the
+   backfill ran successfully (1 organization checked, 1 assessment
+   fixed), and a fresh lead was run through the full pipeline
+   successfully (assessment → won → login creation → sign-in all
+   confirmed working). Still needs: confirming the dashboard itself shows
+   correct data for the now-backfilled "okok schools" assessment.
+3. Nothing else is currently agreed/scoped beyond this — the originally
+   agreed Phase 3 MVP (login + read-only dashboard) is now fully built,
+   pending the above. Next scope needs a fresh decision with the user,
+   same as every phase boundary so far has been an explicit choice, not
+   an assumption.
 
 ## Known constraints worth knowing about upfront
 
@@ -279,6 +390,16 @@ and back in works, confirm a wrong password is rejected.
   and real `npm run dev` — that real-world test has been the actual
   verification step for the Next.js-specific parts, not anything done in
   this sandbox.
+- **`tsx` has shown an unexplained quirk twice in this project**: a
+  TypeScript file with a plain, correct named export sometimes reports
+  only `{ default }` when imported and introspected via `tsx`, even
+  though `tsc` compiles the same file cleanly and the export works fine
+  once compiled. No root cause was found either time. When writing a
+  new standalone script that needs to run outside Next.js's bundler,
+  prefer plain JS against `@prisma/client` directly (see
+  `prisma/seed.mjs` and `scripts/backfill-won-assessments.mjs` for the
+  working pattern) over importing TypeScript source via `tsx`, unless
+  there's a specific reason `tsx` is required.
 
 ## What "done" means in this codebase
 

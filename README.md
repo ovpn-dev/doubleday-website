@@ -14,7 +14,7 @@ The target OS architecture, domain model, and phased delivery scope are document
 |---|---|---|
 | Marketing website + ISO gap assessment | [`apps/website`](apps/website) | Live — public-facing, Next.js |
 | Internal admin (leads, CRM pipeline, proposals) | [`apps/admin`](apps/admin) | Live — internal-only, Next.js, runs on port 3001 |
-| Client portal | [`apps/client-portal`](apps/client-portal) | Login only so far — no dashboard yet, Next.js, runs on port 3002 |
+| Client portal | [`apps/client-portal`](apps/client-portal) | Live — login + read-only dashboard, Next.js, runs on port 3002 |
 
 Everything else under `apps/`, `packages/`, and `services/` is still a stub (see each directory's own README for its planned scope). The original Vite marketing site that used to live at the repository root has been fully replaced by `apps/website` and no longer exists in this repo.
 
@@ -25,7 +25,7 @@ Everything else under `apps/`, `packages/`, and `services/` is still a stub (see
 3. A consultant reviews submissions in the admin app (`apps/admin`), sorted by readiness score, and opens a lead to see the full clause-by-clause breakdown.
 4. The consultant can move the opportunity through its pipeline stage (Discovery → Assessment → Proposal → Negotiation → Won/Lost), set an estimated engagement value, and download a Word proposal generated on the fly from the assessment's gaps — nothing is stored, it's rebuilt from live data on every download.
 5. Marking an opportunity **Won** automatically creates a client `Organization` and an `ACTIVE` `Project` record, and advances the lead to `CONVERTED` — seeding the data model for the client-facing work (document control, audits, etc.) that hasn't been built yet, without requiring a manual backfill later.
-6. From the won lead's page, an admin can issue that client a portal login (email + a password the admin sets and hands over directly — no self-signup, no automated email yet). The client can then sign in at `apps/client-portal`, though the real dashboard there isn't built yet — see `HANDOFF.md` for current status.
+6. From the won lead's page, an admin can issue that client a portal login (email + a password the admin sets and hands over directly — no self-signup, no automated email yet). The client signs in at `apps/client-portal` and sees a read-only dashboard: project status, their readiness score, open gaps (priority ones called out), and the documents they'll need — all reusing the same gap/document logic as the proposal generator, not a separate calculation.
 
 ## Getting started
 

@@ -5,16 +5,19 @@
   "type": "module",
   "exports": {
     "./client": "./src/client.ts",
-    "./crm": "./src/crm.ts"
+    "./crm": "./src/crm.ts",
+    "./client-portal": "./src/client-portal.ts"
   },
   "scripts": {
     "generate": "prisma generate",
     "migrate": "prisma migrate dev",
     "seed": "node --env-file=.env prisma/seed.mjs",
+    "backfill": "node --env-file=.env scripts/backfill-won-assessments.mjs",
     "studio": "prisma studio"
   },
   "dependencies": {
-    "@prisma/client": "^6.0.0"
+    "@prisma/client": "^6.0.0",
+    "@types/node": "^26.1.2"
   },
   "devDependencies": {
     "prisma": "^6.0.0"
