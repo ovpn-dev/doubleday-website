@@ -2,6 +2,7 @@ import { getClientProjectView } from '@doubleday/database/client-portal';
 import { CheckCircle2, ClipboardList, FileText, TriangleAlert } from 'lucide-react';
 import { cookies } from 'next/headers';
 import { readSessionToken, SESSION_COOKIE_NAME } from '../lib/session';
+import { GapStatusSelector } from './gap-status-selector';
 
 const answerLabels: Record<'partial' | 'no', string> = {
   partial: 'Partly in place',
@@ -114,13 +115,16 @@ export default async function PortalHome() {
                   <TriangleAlert size={18} /> Priority areas
                 </h2>
                 <p className="mt-1 text-sm text-red-800">These typically have the greatest bearing on certification readiness.</p>
-                <ul className="mt-3 space-y-2">
+                <ul className="mt-3 space-y-3">
                   {highRiskGaps.map((gap) => (
-                    <li key={gap.code} className="flex items-start justify-between gap-3 text-sm text-red-900">
-                      <span><span className="font-semibold">{gap.code}</span> — {gap.title}</span>
-                      <span className={`flex-none rounded-full px-2.5 py-1 text-xs font-bold ${answerStyles[gap.answer as 'partial' | 'no']}`}>
-                        {answerLabels[gap.answer as 'partial' | 'no']}
-                      </span>
+                    <li key={gap.id} className="flex flex-wrap items-start justify-between gap-3 text-sm text-red-900">
+                      <span className="pt-1.5"><span className="font-semibold">{gap.code}</span> — {gap.title}</span>
+                      <div className="flex flex-none flex-col items-end gap-2">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${answerStyles[gap.answer as 'partial' | 'no']}`}>
+                          {answerLabels[gap.answer as 'partial' | 'no']}
+                        </span>
+                        <GapStatusSelector answerId={gap.id} initialStatus={gap.clientStatus} />
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -132,13 +136,16 @@ export default async function PortalHome() {
                 <h2 className="flex items-center gap-2 font-bold text-slate-950">
                   <ClipboardList size={18} /> Other areas to address
                 </h2>
-                <ul className="mt-3 space-y-2">
+                <ul className="mt-3 space-y-3">
                   {otherGaps.map((gap) => (
-                    <li key={gap.code} className="flex items-start justify-between gap-3 text-sm text-slate-800">
-                      <span><span className="font-semibold">{gap.code}</span> — {gap.title}</span>
-                      <span className={`flex-none rounded-full px-2.5 py-1 text-xs font-bold ${answerStyles[gap.answer as 'partial' | 'no']}`}>
-                        {answerLabels[gap.answer as 'partial' | 'no']}
-                      </span>
+                    <li key={gap.id} className="flex flex-wrap items-start justify-between gap-3 text-sm text-slate-800">
+                      <span className="pt-1.5"><span className="font-semibold">{gap.code}</span> — {gap.title}</span>
+                      <div className="flex flex-none flex-col items-end gap-2">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${answerStyles[gap.answer as 'partial' | 'no']}`}>
+                          {answerLabels[gap.answer as 'partial' | 'no']}
+                        </span>
+                        <GapStatusSelector answerId={gap.id} initialStatus={gap.clientStatus} />
+                      </div>
                     </li>
                   ))}
                 </ul>

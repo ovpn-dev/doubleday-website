@@ -2,11 +2,12 @@
 
 Client-facing workspace for Doubleday's customers. Next.js (App Router), TypeScript, Tailwind. Runs on `http://localhost:3002`.
 
-After signing in, a client sees a read-only dashboard: their project status, ISO readiness score, a list of open gaps (priority ones called out separately), and the documents they'll likely need. No task tracking, document upload, messaging, or editing yet — deliberately, see `HANDOFF.md` at the repo root for the reasoning and what's next.
+After signing in, a client sees a dashboard: their project status, ISO readiness score, a list of open gaps (priority ones called out separately) each with a status toggle they control (Not started / In progress / Acknowledged — self-reported, read-only to Doubleday), and the documents they'll likely need. No document upload, messaging, or Doubleday-side editing of client status yet — deliberately, see `HANDOFF.md` at the repo root for what's next.
 
 ## What's here
 
 - `app/page.tsx` — the dashboard. Reads the session cookie server-side to get the signed-in client's `organizationId`, then calls `getClientProjectView` (`packages/database/src/client-portal.ts`) to fetch everything scoped to that one organization. Fails closed (shows nothing, not another client's data) if the session is somehow missing despite middleware.
+- `app/gap-status-selector.tsx` + `app/gap-status-actions.ts` — the per-gap status toggle and its server action. The action re-derives `organizationId` from the session itself rather than trusting it as a parameter — a server action's arguments are still client-supplied input, so the only trustworthy source of "which org can this user write to" is the session, checked server-side, same as the dashboard read.
 - `app/login/page.tsx` + `app/api/login/route.ts` — email + password login (see "Authentication" below).
 - `app/api/logout/route.ts` — clears the session cookie.
 

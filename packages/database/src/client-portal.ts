@@ -1,4 +1,5 @@
 import { prisma } from './client';
+import type { GapClientStatus } from '@prisma/client';
 
 export type ClientProjectView = {
   organization: { id: string; name: string };
@@ -8,7 +9,7 @@ export type ClientProjectView = {
     overallScore: number | null;
     readinessLabel: string | null;
     submittedAt: Date | null;
-    gaps: { code: string; title: string; answer: 'yes' | 'partial' | 'no'; highRisk: boolean }[];
+    gaps: { id: string; code: string; title: string; answer: 'yes' | 'partial' | 'no'; highRisk: boolean; clientStatus: GapClientStatus }[];
     requiredDocumentGaps: string[];
   } | null;
 };
@@ -61,24 +62,64 @@ export async function getClientProjectView(organizationId: string): Promise<Clie
       : null,
     assessment: assessment
       ? {
-          standardCode: assessment.standardCode,
-          overallScore: assessment.overallScore,
-          readinessLabel: assessment.readinessLabel,
-          submittedAt: assessment.submittedAt,
-          requiredDocumentGaps: assessment.requiredDocumentGaps,
-          gaps: assessment.answers
-            .map((answer) => {
-              const response = isAnswerResponse(answer.response) ? answer.response : null;
-              if (!response || response.answer === 'yes') return null;
-              return {
-                code: answer.clause?.code ?? response.code,
-                title: answer.clause?.title ?? response.title,
-                answer: response.answer,
-                highRisk: answer.clause?.highRisk ?? false,
-              };
-            })
-            .filter((gap): gap is NonNullable<typeof gap> => gap !== null),
-        }
+        standardCode: assessment.standardCode,
+        overallScore: assessment.overallScore,
+        readinessLabel: assessment.readinessLabel,
+        submittedAt: assessment.submittedAt,
+        requiredDocumentGaps: assessment.requiredDocumentGaps,
+        gaps: assessment.answers
+          .map((answer) => {
+            const response = isAnswerResponse(answer.response) ? answer.response : null;
+            if (!response || response.answer === 'yes') return null;
+            return {
+              id: answer.id,
+              code: answer.clause?.code ?? response.code,
+              title: answer.clause?.title ?? response.title,
+              answer: response.answer,
+              highRisk: answer.clause?.highRisk ?? false,
+              clientStatus: answer.clientStatus,
+            };
+          })
+          .filter((gap): gap is NonNullable<typeof gap> => gap !== null),
+      }
       : null,
   };
+}
+
+/**
+ * Updates a single gap's client-reported status. This is CLIENT-ONLY
+ * input by design — nothing in apps/admin ever calls this, only reads the
+ * result (see crm.ts's getLeadWithAssessment, which now also selects
+ * clientStatus). Keeping the write path one-directional preserves the
+ * point of self-reported status: it's the client's own account of where
+ * they are, not something Doubleday can quietly overwrite.
+ *
+ * organizationId must come from the caller's verified session, same as
+ * getClientProjectView. Deliberately fetches the answer first and checks
+ * ownership explicitly, then updates by primary key — rather than folding
+ * the ownership check into a single updateMany's where clause filtered
+ * through the assessment relation. Both would likely work, but for a
+ * function whose entire job is an authorization boundary, the explicit
+ * two-step version is easier to read and audit at a glance, and avoids
+ * leaning on relation-filter behavior in a write query that wasn't
+ * separately verified.
+ */
+export async function updateGapClientStatus(
+  organizationId: string,
+  answerId: string,
+  status: GapClientStatus,
+): Promise<void> {
+  const answer = await prisma.gapAssessmentAnswer.findUnique({
+    where: { id: answerId },
+    select: { assessment: { select: { organizationId: true } } },
+  });
+
+  if (!answer || answer.assessment.organizationId !== organizationId) {
+    throw new Error('Gap not found for this organization.');
+  }
+
+  await prisma.gapAssessmentAnswer.update({
+    where: { id: answerId },
+    data: { clientStatus: status },
+  });
 }

@@ -29,6 +29,17 @@ const answerLabels: Record<AnswerResponse['answer'], string> = {
   no: 'Not yet',
 };
 
+const clientStatusLabels: Record<string, string> = {
+  NOT_STARTED: 'Not started',
+  IN_PROGRESS: 'In progress',
+  ACKNOWLEDGED: 'Acknowledged',
+};
+
+const clientStatusStyles: Record<string, string> = {
+  IN_PROGRESS: 'bg-blue-50 text-blue-800 border border-blue-200',
+  ACKNOWLEDGED: 'bg-green-50 text-green-800 border border-green-200',
+};
+
 export default async function LeadDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const lead = await getLeadWithAssessment(id);
@@ -125,6 +136,32 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               </div>
             )}
 
+            {(() => {
+              // Client progress is only meaningful for the gaps the client
+              // dashboard actually shows a status toggle for — answers
+              // that were already "yes" never get one, so they're
+              // excluded here too, keeping this count consistent with
+              // what the client sees.
+              const trackedGaps = assessment.answers.filter((answer) => {
+                const response = isAnswerResponse(answer.response) ? answer.response : null;
+                return response && response.answer !== 'yes';
+              });
+              if (trackedGaps.length === 0) return null;
+
+              const acknowledged = trackedGaps.filter((a) => a.clientStatus === 'ACKNOWLEDGED').length;
+              const inProgress = trackedGaps.filter((a) => a.clientStatus === 'IN_PROGRESS').length;
+
+              return (
+                <div className="mt-6 rounded-2xl border border-blue-200 bg-blue-50 p-6">
+                  <h2 className="font-bold text-blue-900">Client progress</h2>
+                  <p className="mt-1 text-sm text-blue-800">
+                    {acknowledged}/{trackedGaps.length} gaps acknowledged
+                    {inProgress > 0 && <>, {inProgress} in progress</>}. Self-reported by the client — not editable from here.
+                  </p>
+                </div>
+              );
+            })()}
+
             {assessment.requiredDocumentGaps.length > 0 && (
               <div className="mt-6 rounded-2xl border border-slate-200 p-6">
                 <h2 className="font-bold text-slate-950">Likely required documents</h2>
@@ -152,9 +189,16 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                         {response?.question && <p className="mt-1 text-sm text-slate-600">{response.question}</p>}
                       </div>
                       {response && (
-                        <span className={`flex-none rounded-full px-2.5 py-1 text-xs font-bold ${answerStyles[response.answer]}`}>
-                          {answerLabels[response.answer]}
-                        </span>
+                        <div className="flex flex-none flex-col items-end gap-1.5">
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${answerStyles[response.answer]}`}>
+                            {answerLabels[response.answer]}
+                          </span>
+                          {answer.clientStatus !== 'NOT_STARTED' && clientStatusStyles[answer.clientStatus] && (
+                            <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${clientStatusStyles[answer.clientStatus]}`}>
+                              Client: {clientStatusLabels[answer.clientStatus]}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                   );
